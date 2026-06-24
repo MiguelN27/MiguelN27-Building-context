@@ -3,21 +3,38 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { KPIRow } from "@/components/dashboard/kpi-row";
 import { IncomeOutcomeChart } from "@/components/dashboard/income-outcome-chart";
 import { ProfitPercentChart } from "@/components/dashboard/profit-percent-chart";
+import { RiskyPracticesPanel } from "@/components/dashboard/risky-practices-panel";
 import {
   type FinancialMovement,
   type KPIMetrics,
   type MonthlyDataPoint,
+  isFinancialMovementArray,
 } from "@/lib/financial-types";
 import { computeKPIs, computeMonthlyData } from "@/lib/financial-utils";
+import { buildRiskPracticeChecks } from "@/lib/risky-practice-checks";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-async function fetchFinancialData(): Promise<FinancialMovement[]> {
-  const response = await fetch(`${API_BASE_URL}/api/metrics`);
+function normalizeApiBaseUrl(value: string): string {
+  return value.replace(/\/+$/, "");
+}
+
+async function fetchFinancialData(apiBaseUrl?: string): Promise<FinancialMovement[]> {
+  if (!apiBaseUrl?.trim()) {
+    throw new Error("Missing VITE_API_BASE_URL configuration");
+  }
+
+  const response = await fetch(`${normalizeApiBaseUrl(apiBaseUrl)}/api/metrics`);
   if (!response.ok) {
     throw new Error(`Failed to fetch financial data: ${response.status}`);
   }
-  return response.json();
+
+  const parsedData: unknown = await response.json();
+  if (!isFinancialMovementArray(parsedData)) {
+    throw new Error("Invalid API payload: expected FinancialMovement[]");
+  }
+
+  return parsedData;
 }
 
 function App() {
@@ -25,16 +42,22 @@ function App() {
   const [monthlyData, setMonthlyData] = useState<MonthlyDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const checks = buildRiskPracticeChecks({
+    apiBaseUrl: API_BASE_URL,
+    hadFetchError: Boolean(error),
+  });
 
   useEffect(() => {
-    fetchFinancialData()
+    fetchFinancialData(API_BASE_URL)
       .then((movements) => {
         setMetrics(computeKPIs(movements));
         setMonthlyData(computeMonthlyData(movements));
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        console.error("Error loading financial dashboard data", err);
+        const detail = err instanceof Error ? err.message : "Unknown error";
         setError(
-          "No se pudo cargar la informacion financiera. Revisa la API de backend.",
+          `No se pudo cargar la informacion financiera. Revisa la API de backend. Detalle: ${detail}`,
         );
       })
       .finally(() => {
@@ -57,6 +80,8 @@ function App() {
           <section aria-label="Key performance indicators">
             <KPIRow metrics={metrics} loading={loading} />
           </section>
+
+          <RiskyPracticesPanel checks={checks} />
 
           <section
             aria-label="Financial charts"
