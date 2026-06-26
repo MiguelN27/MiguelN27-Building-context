@@ -26,7 +26,7 @@ A table that highlights periods where spending spiked unexpectedly to watch in a
 ### Endpoint
 `GET /api/metrics/alerts?threshold=<ratio>`
 
-## B2B vs B2C comparison view
+## 3. B2B vs B2C comparison view
 ### What is it about?
 A new page for comparing revenue performance between the two business lines: B2B AND B2C
 ### Features
