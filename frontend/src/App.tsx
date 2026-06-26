@@ -14,17 +14,19 @@ import { computeKPIs, computeMonthlyData } from "@/lib/financial-utils";
 import { buildRiskPracticeChecks } from "@/lib/risky-practice-checks";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const DEFAULT_API_BASE_URL = "/api";
 
 function normalizeApiBaseUrl(value: string): string {
   return value.replace(/\/+$/, "");
 }
 
 async function fetchFinancialData(apiBaseUrl?: string): Promise<FinancialMovement[]> {
-  if (!apiBaseUrl?.trim()) {
-    throw new Error("Missing VITE_API_BASE_URL configuration");
-  }
+  const baseUrl = apiBaseUrl?.trim() ? apiBaseUrl : DEFAULT_API_BASE_URL;
 
-  const response = await fetch(`${normalizeApiBaseUrl(apiBaseUrl)}/api/metrics`);
+  const endpoint = baseUrl === DEFAULT_API_BASE_URL
+    ? `${DEFAULT_API_BASE_URL}/metrics`
+    : `${normalizeApiBaseUrl(baseUrl)}/api/metrics`;
+  const response = await fetch(endpoint);
   if (!response.ok) {
     throw new Error(`Failed to fetch financial data: ${response.status}`);
   }

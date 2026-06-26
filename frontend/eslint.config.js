@@ -15,6 +15,20 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-restricted-types": [
+        "error",
+        {
+          types: {
+            object: {
+              message:
+                "Use a specific object shape or Record<string, unknown> instead of object.",
+            },
+          },
+        },
+      ],
+    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
